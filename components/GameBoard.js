@@ -50,8 +50,15 @@ const GameBoard = ({className, mode = "view"}) => {
 
 	const handleClick = ({target}) => {
 		setEditing(target.id)
-		const inputId = (target.id.startsWith("c") ? "c" : "q") + "_input"
-		focusEl(inputId)
+		const id = target.id.substr(2)
+		if (target.id.startsWith("c")) {
+			setInputC(categories[id] || "")
+			focusEl("c_input")
+		} else {
+			setInputQ(questions[id] || "")
+			setInputA(answers[id] || "")
+			focusEl("q_input")
+		}
 	}
 
 	const handleSave = (e) => {
@@ -64,6 +71,10 @@ const GameBoard = ({className, mode = "view"}) => {
 			saveInput(id, inputQ, setInputQ, setQuestion)
 			saveInput(id, inputA, setInputA, setAnswer)
 		}
+
+		// TODO:
+		// We could potentially think about "auto-saving"
+		// after each new question is submitted
 
 		// Try to advance to the next question
 		// This is janky, but it works. Oh well.
@@ -78,6 +89,8 @@ const GameBoard = ({className, mode = "view"}) => {
 				!answers[`${dollar}_${catId}`]
 			) {
 				setEditing(`g_${dollar}_${catId}`)
+				setInputQ("")
+				setInputA("")
 				focusEl("q_input")
 				break
 			} else {
