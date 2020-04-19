@@ -1,0 +1,89 @@
+JeoPartyGamesTable:
+  component: "@serverless/aws-dynamodb"
+  inputs:
+    name: jeoparty-games
+    attributeDefinitions:                    
+      - AttributeName: gameId
+        AttributeType: S
+      # - AttributeName: gameName
+      #   AttributeType: S
+      # - AttributeName: creator
+      #   AttributeType: S
+      # Note: The following should be JSON.stringify(Obj)
+      # - AttributeName: questions
+      #   AttributeType: S
+      # - AttributeName: answers
+      #   AttributeType: S
+      # - AttributeName: categories
+      #   AttributeType: S
+    keySchema:
+      - AttributeName: gameId
+        KeyType: HASH
+
+JeoPartyPlaysTable:
+  component: "@serverless/aws-dynamodb"
+  inputs:
+    name: jeoparty-plays
+    attributeDefinitions:                    
+      - AttributeName: playId
+        AttributeType: S
+      - AttributeName: gameId
+        AttributeType: S
+      # - AttributeName: hostSocket
+      #   AttributeType: S
+    keySchema:
+      - AttributeName: playId
+        KeyType: HASH
+      - AttributeName: gameId
+        KeyType: RANGE
+    globalSecondaryIndexes:
+      - IndexName: 'gameIndex'
+        KeySchema:
+          - AttributeName: gameId
+            KeyType: HASH
+        Projection:
+          ProjectionType: 'ALL'
+
+JeoPartyPlayClientsTable:
+  component: "@serverless/aws-dynamodb"
+  inputs:
+    name: jeoparty-play-clients
+    attributeDefinitions:
+      - AttributeName: playId
+        AttributeType: S
+      - AttributeName: connectionId
+        AttributeType: S
+      # - AttributeName: nickname
+      #   AttributeType: S
+    keySchema:
+      - AttributeName: playId
+        KeyType: HASH
+      - AttributeName: connectionId
+        KeyType: RANGE
+    globalSecondaryIndexes:
+      - IndexName: 'connectionIndex'
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+        Projection:
+          ProjectionType: 'ALL'
+
+JeoPartySocket:
+  component: "@serverless/backend-socket"
+  inputs:
+    name: jeoparty-socket
+    description: Socket to handle chats
+    memory: 128
+    timeout: 10
+    env:
+      DDB_GAMES_NAME: ${JeoPartyGamesTable.name}
+      DDB_PLAYS_NAME: ${JeoPartyPlaysTable.name}
+      DDB_PLAY_CLIENTS_NAME: ${JeoPartyPlayClientsTable.name}
+    code:
+      src: ./backend
+
+JeoPartyApp:
+  component: serverless-next.js
+  build:
+    env:
+      WS_SOCKET_URL: ${JeoPartySocket.url}
