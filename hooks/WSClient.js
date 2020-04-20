@@ -7,7 +7,7 @@ export const useWebSocket = (cb, keepAlive = false) => {
 
   useEffect(() => {
     // TODO: Fix the env variable (it's not currently working)
-    const WS_URL = process.env.WS_SOCKET_URL || "wss://2ilbwprqua.execute-api.us-east-1.amazonaws.com/dev/"
+    const WS_URL = process.env.WS_SOCKET_URL || "wss://ua7tiplvsh.execute-api.us-east-1.amazonaws.com/dev/"
     if (!wsClient) {
         console.log("Creating WS connection:", process.env.WS_SOCKET_URL, WS_URL)
         setWsClient(new WebSocket(WS_URL))

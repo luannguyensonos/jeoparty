@@ -3,9 +3,9 @@ AWS.config.update({ region: process.env.AWS_REGION })
 const DDB = new AWS.DynamoDB()
 const DDBDoc = new AWS.DynamoDB.DocumentClient()
 
-const GAMES_TABLE_NAME = process.env.DDB_GAMES_NAME || "jeoparty-games"
-const PLAYS_TABLE_NAME = process.env.DDB_PLAYS_NAME || "jeoparty-plays"
-const CLIENTS_TABLE_NAME = process.env.DDB_PLAY_CLIENTS_NAME || "jeoparty-play-clients"
+const GAMES_TABLE_NAME = process.env.DDB_GAMES_NAME || "web-trivia-games"
+const PLAYS_TABLE_NAME = process.env.DDB_PLAYS_NAME || "web-trivia-plays"
+const CLIENTS_TABLE_NAME = process.env.DDB_PLAY_CLIENTS_NAME || "web-trivia-play-clients"
 
 // data should be a JS Object
 const broadcastMessage = async (socket, playId, data, excludes = []) => {

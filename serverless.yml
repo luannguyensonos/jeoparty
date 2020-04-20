@@ -1,7 +1,7 @@
-JeoPartyGamesTable:
+WebTriviaPartyGamesTable:
   component: "@serverless/aws-dynamodb"
   inputs:
-    name: jeoparty-games
+    name: web-trivia-games
     attributeDefinitions:                    
       - AttributeName: gameId
         AttributeType: S
@@ -20,10 +20,10 @@ JeoPartyGamesTable:
       - AttributeName: gameId
         KeyType: HASH
 
-JeoPartyPlaysTable:
+WebTriviaPartyPlaysTable:
   component: "@serverless/aws-dynamodb"
   inputs:
-    name: jeoparty-plays
+    name: web-trivia-plays
     attributeDefinitions:                    
       - AttributeName: playId
         AttributeType: S
@@ -42,10 +42,10 @@ JeoPartyPlaysTable:
     #     Projection:
     #       ProjectionType: 'ALL'
 
-JeoPartyPlayClientsTable:
+WebTriviaPartyPlayClientsTable:
   component: "@serverless/aws-dynamodb"
   inputs:
-    name: jeoparty-play-clients
+    name: web-trivia-play-clients
     attributeDefinitions:
       - AttributeName: playId
         AttributeType: S
@@ -66,22 +66,22 @@ JeoPartyPlayClientsTable:
         Projection:
           ProjectionType: 'ALL'
 
-JeoPartySocket:
+WebTriviaPartySocket:
   component: "@serverless/backend-socket"
   inputs:
-    name: jeoparty-socket
+    name: web-trivia-socket
     description: Socket to handle chats
     memory: 128
     timeout: 10
     env:
-      DDB_GAMES_NAME: ${JeoPartyGamesTable.name}
-      DDB_PLAYS_NAME: ${JeoPartyPlaysTable.name}
-      DDB_PLAY_CLIENTS_NAME: ${JeoPartyPlayClientsTable.name}
+      DDB_GAMES_NAME: ${WebTriviaPartyGamesTable.name}
+      DDB_PLAYS_NAME: ${WebTriviaPartyPlaysTable.name}
+      DDB_PLAY_CLIENTS_NAME: ${WebTriviaPartyPlayClientsTable.name}
     code:
       src: ./backend
 
-JeoPartyApp:
+WebTriviaPartyApp:
   component: serverless-next.js
   build:
     env:
-      WS_SOCKET_URL: ${JeoPartySocket.url}
+      WS_SOCKET_URL: ${WebTriviaPartySocket.url}
