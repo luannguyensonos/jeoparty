@@ -116,7 +116,6 @@ const GameBoard = ({className, mode = "host"}) => {
 	}
 
 	const handleClose = () => {
-		console.log("Closing modal")
 		setEditing("")
 
 		if (gameState === 4)

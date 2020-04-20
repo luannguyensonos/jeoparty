@@ -82,7 +82,6 @@ const GameProvider = ({children, gameId, playId = null}) => {
         retObj = {...oldObj}
         break
     }
-    console.log("retObj", retObj)
     return retObj
   }, {})
 

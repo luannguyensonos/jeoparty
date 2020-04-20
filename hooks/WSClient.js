@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 
 // Using this websocket as a proxy to make API calls for now
-export const useWebSocket = (cb, keepAlive = true) => {
+export const useWebSocket = (cb, keepAlive = false) => {
   const [wsClient, setWsClient] = useState(null)
   const [wsIsReady, setIsReady] = useState(false)
 

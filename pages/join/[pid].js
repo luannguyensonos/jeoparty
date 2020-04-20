@@ -18,11 +18,9 @@ const JoinPage = () => {
   const [inputA, setInputA] = useState("")
   
   const { wsIsReady, sendMessage } = useWebSocket(message => {
-    console.log("Got a Websocket callback", message)
     switch (message.type) {
       case "joinPlayCb":
         // TODO
-        console.log(message)
         setJoined(true)
         break
       case "newQuestion":
@@ -40,7 +38,6 @@ const JoinPage = () => {
     e.preventDefault()
 
     if (inputNick.length > 0 && wsIsReady)
-      console.log("Sending join call", inputNick)
       sendMessage({
         action: "joinPlay",
         playId: pid,
