@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 
 // Using this websocket as a proxy to make API calls for now
-export const useWebSocket = (cb) => {
+export const useWebSocket = (cb, keepAlive = true) => {
   const [wsClient, setWsClient] = useState(null)
   const [wsIsReady, setIsReady] = useState(false)
 
@@ -18,13 +18,23 @@ export const useWebSocket = (cb) => {
         wsClient.addEventListener('open', function (event) {
             // console.log("Handling WS connection open", event)
             setIsReady(true)
+
+            // keep alive
+            if (keepAlive) {
+              setInterval(() => {
+                wsClient.send(JSON.stringify({
+                  action: "keepAlive"
+                }))
+              }, 30000)
+            }
+
             cb({type: "openCb"})
         })
 
         // On Event Received...
         wsClient.addEventListener('message', function (event) {
             const message = JSON.parse(event.data)
-            console.log("Handling WS message", message)
+            // console.log("Handling WS message", message)
             cb(message)
         })
     }

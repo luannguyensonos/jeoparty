@@ -1,21 +1,38 @@
 import React, { useReducer, useEffect, useState } from "react"
+import { useRouter } from 'next/router'
+import { useLocalStorage } from "react-use"
 import { useWebSocket } from "../hooks/WSClient"
+import generateId from "../util/id"
+
+const GAME_TIME = 25
 
 export const GameContext = React.createContext({
   gameId: "",
+  playId: "",
   categories: {},
   questions: {},
   answers: {},
   name: "",
   creator: "",
-  gameStateReady: false,
+  gameState: 0,
+  currentQuestion: "",
+  gameClock: GAME_TIME,
+  playedQuestions: {},
+  clients: {},
+  clientAnswers: {},
   setCategory: str => {},
   setQuestion: str => {},
   setAnswer: str => {},
   setName: str => {},
   setCreator: str => {},
   isGameFilledIn: () => {},
-  saveGame: (data) => {}
+  saveGame: (data) => {},
+  startNewPlay: () => {},
+  startPlaySession: () => {},
+  startNewQuestion: (id) => {},
+  endCurrentQuestion: () => {},
+  overrideAnswer: (str) => {},
+  resetPlayState: () => {}
 })
 
 const objReducer = (oldObj, newItem) => {
@@ -25,21 +42,53 @@ const objReducer = (oldObj, newItem) => {
   }
 }
 
-const GameProvider = ({children, gameId}) => {
+const GameProvider = ({children, gameId, playId = null}) => {
+  const router = useRouter()
 
-  const [gameStateReady, setGameStateReady] = useState(false)
+  const [, setLocalGameId] = useLocalStorage("gameId", gameId)
   const [categories, setCategory] = useReducer(objReducer, {})
   const [questions, setQuestion] = useReducer(objReducer, {})
   const [answers, setAnswer] = useReducer(objReducer, {})
   const [name, setName] = useState("")
   const [creator, setCreator] = useState("")
+  const [gameState, setGameState] = useState(0)
+  /*
+    Game states:
+      0 not loaded yet
+      1 loaded but not started
+      2 started (waiitng for question)
+      3 in question
+      4 in scoring mode
+  */
+  const [currentQuestion, setCurrentQuestion] = useState("")
+  const [gameClock, setGameClock] = useState(GAME_TIME)
+  const [playedQuestions, addPlayedQuestion] = useReducer(objReducer, {})
+  const [clientAnswers, setClientAnswers] = useReducer(objReducer, {})
+  const [clients, setClients] = useReducer((oldObj, newObj) => {
+    let retObj
+    switch (newObj.action) {
+      case "replace":
+        retObj = {...newObj.obj}
+        break
+      case "setConnected":
+        if (oldObj[newObj.id]) {
+          oldObj[newObj.id].connected = newObj.value
+        } else {
+          oldObj[newObj.id] = {
+            score: 0,
+            connected: newObj.value
+          }
+        }
+        retObj = {...oldObj}
+        break
+    }
+    console.log("retObj", retObj)
+    return retObj
+  }, {})
 
   const { wsIsReady, sendMessage } = useWebSocket(message => {
-    console.log("Got a Websocket callback", message)
     switch (message.type) {
       case "loadGameCb":
-        // TODO
-        console.log(message)
         const loadedGame = message.payload && message.payload.Item ? 
           message.payload.Item : 
           null
@@ -51,13 +100,73 @@ const GameProvider = ({children, gameId}) => {
           setQuestion(JSON.parse(loadedGame.questions.S))
           setAnswer(JSON.parse(loadedGame.answers.S))
         }
-        setGameStateReady(true)
+        if (gameState < 1)
+          setGameState(1)
         break
-      default:
-        console.log("No cb handler", message)
+      case "loadPlayCb":
+        const loadedPlay = message.payload && message.payload.Item ? 
+          message.payload.Item : 
+          null
+        if (loadedPlay) {
+          if (loadedPlay.clients) {
+            const loadedClients = JSON.parse(loadedPlay.clients.S)
+            const loadedPlayConns = message.conns && message.conns.Items ?
+              message.conns.Items :
+              [];
+            let activeClients = []
+            loadedPlayConns.map(({nickname}) => {
+              activeClients.push(nickname)
+            })
+            Object.keys(loadedClients).forEach(c => {
+              loadedClients[c].connected = activeClients.includes(c)
+            })
+            setClients({
+              action: "replace",
+              obj: loadedClients
+            })
+          }
+
+          if (loadedPlay.playedQuestions) {
+            const loadedQuestions = JSON.parse(loadedPlay.playedQuestions.S)
+            addPlayedQuestion(loadedQuestions)
+          }
+        } else {
+          sendMessage({
+            action: "seedPlay",
+            playId,
+            gameId
+          })
+        }
+        break
+      case "joinPlayCb":
+        const newClient = message.nickname || null
+        if (newClient) {
+          setClients({
+            action: "setConnected",
+            id: newClient,
+            value: true
+          })
+        }
+        break
+      case "disconnectedCb":
+        const disconnectedClient = message.nickname || null
+        if (disconnectedClient) {
+          setClients({
+            action: "setConnected",
+            id: disconnectedClient,
+            value: false
+          })
+        }
+        break
+      case "clientAnswer":
+        if (message.nickname) {
+          setClientAnswers({
+            [message.nickname]: message.answer
+          })
+        }
+        break
     }
 	})
-
 
   useEffect(() => {
     // Try to load game state
@@ -66,6 +175,13 @@ const GameProvider = ({children, gameId}) => {
         action: "loadGame",
         gameId
       })
+
+      if (playId) {
+        sendMessage({
+          action: "loadPlay",
+          playId
+        })
+      }
     }
   }, [wsIsReady])
 
@@ -89,22 +205,134 @@ const GameProvider = ({children, gameId}) => {
 		})
   }
 
+  const savePlay = () => {
+    if (wsIsReady)
+      sendMessage({
+        action: "savePlay",
+        playId,
+        gameId,
+        playedQuestions,
+        clients
+      })
+  }
+
+  useEffect(() => {
+    if (gameState >= 5)
+      savePlay()
+  }, [gameState])
+
+  const startNewPlay = () => {
+    setLocalGameId(gameId)
+    saveGame()
+    router.push(`/host/${generateId()}`)
+  }
+
+  const startPlaySession = () => {
+    if (Object.keys(clients).length > 0) {
+      setGameState(2)
+    }
+  }
+
+  const startNewQuestion = (id) => {
+    // Reset clientAnswers
+    const newAnswers = Object.keys(clientAnswers).reduce((agg, c) => {
+      agg[c] = ""
+      return agg
+    }, {})
+    setClientAnswers(newAnswers)
+
+    sendMessage({
+      action: "broadcastToClients",
+      type: "newQuestion",
+      playId,
+      question: questions[id]
+    })
+    setCurrentQuestion(id)
+    setGameState(3)
+    setGameClock(GAME_TIME)
+  }
+
+  useEffect(() => {
+    if (gameState === 3) {
+      setTimeout(() => {
+        const newClock = gameClock-1;
+        setGameClock(newClock)
+
+        if (
+          newClock <= 0 ||
+          Object.keys(clientAnswers).filter(c => clientAnswers[c].length > 0).length >=
+            Object.keys(clients).filter(c => clients[c].connected).length
+        ) {
+          setGameState(4)
+          sendMessage({
+            action: "broadcastToClients",
+            type: "timeExpired",
+            playId
+          })
+        }  
+      }, 1000)
+    }
+  }, [gameClock, gameState])
+
+  const endCurrentQuestion = () => {
+    addPlayedQuestion({
+      [currentQuestion] : true
+    })
+
+    // Increment scores
+    const value = Number.parseInt(currentQuestion.split("_")[0])
+    Object.keys(clientAnswers).forEach(c => {
+      const cAns = clientAnswers[c]
+      if (cAns.toUpperCase() === answers[currentQuestion]) {
+        clients[c].score += value
+      } else if (cAns !== "<abstain>" && cAns.length > 0) {
+        clients[c].score -= value
+      }
+    })
+
+    setGameState(5)
+  }
+
+  const overrideAnswer = (team) => {
+    setClientAnswers({
+      [team]: answers[currentQuestion]
+    })
+  }
+
+  const resetPlayState = () => {
+    // TODO: Implement this
+    // It's hard because of the playedQuestions
+    // and clients are both using the objReducer fn
+  }
+
   return (
     <GameContext.Provider value={{
       gameId,
+      playId,
       categories,
       questions,
       answers,
       name,
       creator,
-      gameStateReady,
+      gameState,
+      currentQuestion,
+      gameClock,
+      playedQuestions,
+      clients,
+      clientAnswers,
       setCategory,
       setQuestion,
       setAnswer,
       setName,
       setCreator,
       isGameFilledIn,
-      saveGame
+      saveGame,
+      startNewPlay,
+      startPlaySession,
+      startNewQuestion,
+      endCurrentQuestion,
+      overrideAnswer,
+      resetPlayState
     }}>
       {children}
     </GameContext.Provider>

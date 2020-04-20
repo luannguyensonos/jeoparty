@@ -27,22 +27,20 @@ JeoPartyPlaysTable:
     attributeDefinitions:                    
       - AttributeName: playId
         AttributeType: S
-      - AttributeName: gameId
-        AttributeType: S
+      # - AttributeName: gameId
+      #   AttributeType: S
       # - AttributeName: hostSocket
       #   AttributeType: S
     keySchema:
       - AttributeName: playId
         KeyType: HASH
-      - AttributeName: gameId
-        KeyType: RANGE
-    globalSecondaryIndexes:
-      - IndexName: 'gameIndex'
-        KeySchema:
-          - AttributeName: gameId
-            KeyType: HASH
-        Projection:
-          ProjectionType: 'ALL'
+    # globalSecondaryIndexes:
+    #   - IndexName: 'gamePlaysIndex'
+    #     KeySchema:
+    #       - AttributeName: gameId
+    #         KeyType: HASH
+    #     Projection:
+    #       ProjectionType: 'ALL'
 
 JeoPartyPlayClientsTable:
   component: "@serverless/aws-dynamodb"
