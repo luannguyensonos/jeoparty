@@ -7,8 +7,10 @@ import Main from "../../components/Main"
 import Input from "../../components/Input"
 import Button from "../../components/Button"
 import { useWebSocket } from "../../hooks/WSClient"
+import { GAME_TIME } from "../../context/GameContext"
 
 const MAX_LEN = 20
+const CLIENT_TIME = GAME_TIME-1
 
 const JoinPage = () => {
 	const router = useRouter()
@@ -18,6 +20,7 @@ const JoinPage = () => {
   const [joined, setJoined] = useState(0)
   const [question, setQuestion] = useState("")
   const [inputA, setInputA] = useState("")
+  const [gameClock, setGameClock] = useState(0)
   
   const { wsIsReady, sendMessage } = useWebSocket(message => {
     switch (message.type) {
@@ -31,9 +34,11 @@ const JoinPage = () => {
       case "newQuestion":
         setInputA("")
         setQuestion(message.question)
+        setGameClock(CLIENT_TIME)
         break
       case "timeExpired":
         setQuestion("")
+        setGameClock(0)
         break
       default:
         console.log("No cb handler", message)
@@ -54,7 +59,7 @@ const JoinPage = () => {
   const submitAnswer = (e) => {
     e.preventDefault()
 
-    if (question.length > 0 && inputA.length > 0 && wsIsReady)
+    if (question.length > 0 && inputA.length > 0 && wsIsReady) {
       sendMessage({
         action: "sendToHost",
         type: "clientAnswer",
@@ -62,8 +67,10 @@ const JoinPage = () => {
         answer: inputA,
         nickname: inputNick
       })
-
-    setInputA("")
+      setQuestion("")
+      setGameClock(0)
+      setInputA("")
+    }
   }
 
   const skipQuestion = (e) => {
@@ -77,8 +84,19 @@ const JoinPage = () => {
         answer: "<abstain>",
         nickname: inputNick
       })
+
+    setGameClock(0)
     setQuestion("")
   }
+
+  useEffect(() => {
+    if (question.length > 0 && gameClock > 0) {
+      setTimeout(() => {
+        const newClock = gameClock-1;
+        setGameClock(newClock)
+      }, 1000)
+    }
+  }, [gameClock])
 
 	return (
 		<>
@@ -175,10 +193,11 @@ const JoinPage = () => {
                         css={css`
                           margin-top: .5rem;
                           width: 80vw;
+                          background-color: ${question.length > 0 && gameClock > 0 ? `blue` : `#AAA`}
                         `}
                         onClick={submitAnswer}
                       >
-                        Submit
+                        {`Submit${question.length > 0 && gameClock > 0 ? ` within ${gameClock}` : ``}`}
                       </Button>
                       <br/>
                       <Button
