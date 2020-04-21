@@ -283,7 +283,6 @@ const GameBoard = ({className, mode = "host"}) => {
 			}
 			<div
 				css={css`
-					padding: 2rem;
 					display: flex;
 					font-size: 2rem;
 					color: white;
@@ -425,7 +424,34 @@ const GameBoard = ({className, mode = "host"}) => {
 									{gameState === 3 ? questions[currentQuestion] : answers[currentQuestion]}
 								</div>
 								<div>
-									{gameState === 3 ? `Time left: ${gameClock}` :
+									{gameState === 3 ? 
+										(
+											<div>
+												{`Time left: ${gameClock}`}
+												<div
+													css={css`
+														display: flex;
+														flex-direction: row;
+														margin: 1.5rem;
+														justify-content: center;
+													`}
+												>
+													{connectedClients.map(c => {
+														return (
+															<div
+																css={css`
+																	margin: 1rem;
+																	width: 2rem;
+																	height: 2rem;
+																	background-color: ${clientAnswers[c] && clientAnswers[c].length > 0 ? `#AFF880` : `red`}
+																`}
+															>
+															</div>
+														)
+													})}
+												</div>
+											</div>
+									 	) :
 										(
 											<div>
 												{Object.keys(clientAnswers).map(c => {
@@ -434,7 +460,7 @@ const GameBoard = ({className, mode = "host"}) => {
 													let color
 													if (cAns.toUpperCase() === answers[currentQuestion]) {
 														tag = "CORRECT"
-														color = "green"
+														color = "#AFF880"
 													} else if (cAns === "<abstain>" || cAns.length <= 0) {
 														tag = "SKIPPED"
 														color = "white"
@@ -453,7 +479,7 @@ const GameBoard = ({className, mode = "host"}) => {
 														>
 															<div
 																css={css`
-																	margin-right: 1rem;
+																	margin-right: auto;
 																`}
 															>
 																{c}
