@@ -64,6 +64,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
   const [gameClock, setGameClock] = useState(GAME_TIME)
   const [playedQuestions, addPlayedQuestion] = useReducer(objReducer, {})
   const [clientAnswers, setClientAnswers] = useReducer(objReducer, {})
+  const [rejects, setRejects] = useState([])
   const [clients, setClients] = useReducer((oldObj, newObj) => {
     let retObj
     switch (newObj.action) {
@@ -71,6 +72,14 @@ const GameProvider = ({children, gameId, playId = null}) => {
         retObj = {...newObj.obj}
         break
       case "setConnected":
+        if (newObj.value) {
+          const connected = Object.keys(oldObj)
+            .filter(c => { return oldObj[c].connected })
+          if (connected.length >= 18) {
+            setRejects(oldArray => [...oldArray, newObj.connectionId])
+            return oldObj
+          }
+        }
         if (oldObj[newObj.id]) {
           oldObj[newObj.id].connected = newObj.value
         } else {
@@ -143,7 +152,8 @@ const GameProvider = ({children, gameId, playId = null}) => {
           setClients({
             action: "setConnected",
             id: newClient,
-            value: true
+            value: true,
+            connectionId: message.connectionId
           })
         }
         break
@@ -183,6 +193,20 @@ const GameProvider = ({children, gameId, playId = null}) => {
       }
     }
   }, [wsIsReady])
+
+  useEffect(() => {
+    if (rejects.length > 0) {
+      rejects.forEach(r => {
+        sendMessage({
+          action: "sendToConnection",
+          type: "joinRejection",
+          playId,
+          connectionId: r
+        })
+      })
+      setRejects([])
+    }
+  }, [rejects])
 
   const isGameFilledIn = () => {
     return (
@@ -282,6 +306,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
     const value = Number.parseInt(currentQuestion.split("_")[0])
     Object.keys(clientAnswers).forEach(c => {
       const cAns = clientAnswers[c]
+      if (!cAns || !clients[c]) return
       if (cAns.toUpperCase() === answers[currentQuestion]) {
         clients[c].score += value
       } else if (cAns !== "<abstain>" && cAns.length > 0) {

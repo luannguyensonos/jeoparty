@@ -274,7 +274,8 @@ on('default', async (data, socket) => {
       }
       messageHost(socket, myData.playId, {
         "type": "joinPlayCb",
-        "nickname": myData.nickname
+        "nickname": myData.nickname,
+        "connectionId": socket.id
       })
       break
     case "broadcastToClients":
@@ -287,6 +288,13 @@ on('default', async (data, socket) => {
     case "sendToHost":
       try {
         await messageHost(socket, myData.playId, myData)
+      } catch (error) {
+        throw new Error(error)
+      }
+      break
+    case "sendToConnection":
+      try {
+        socket.send(data, myData.connectionId)
       } catch (error) {
         throw new Error(error)
       }

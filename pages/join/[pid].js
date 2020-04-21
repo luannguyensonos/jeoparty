@@ -8,12 +8,14 @@ import Input from "../../components/Input"
 import Button from "../../components/Button"
 import { useWebSocket } from "../../hooks/WSClient"
 
+const MAX_LEN = 20
+
 const JoinPage = () => {
 	const router = useRouter()
   const { pid } = router.query
   
   const [inputNick, setInputNick] = useState("")
-  const [joined, setJoined] = useState(false)
+  const [joined, setJoined] = useState(0)
   const [question, setQuestion] = useState("")
   const [inputA, setInputA] = useState("")
   
@@ -21,9 +23,13 @@ const JoinPage = () => {
     switch (message.type) {
       case "joinPlayCb":
         // TODO
-        setJoined(true)
+        setJoined(1)
+        break
+      case "joinRejection":
+        setJoined(2)
         break
       case "newQuestion":
+        setInputA("")
         setQuestion(message.question)
         break
       case "timeExpired":
@@ -48,7 +54,7 @@ const JoinPage = () => {
   const submitAnswer = (e) => {
     e.preventDefault()
 
-    if (inputA.length > 0 && wsIsReady)
+    if (question.length > 0 && inputA.length > 0 && wsIsReady)
       sendMessage({
         action: "sendToHost",
         type: "clientAnswer",
@@ -63,7 +69,7 @@ const JoinPage = () => {
   const skipQuestion = (e) => {
     e.preventDefault()
 
-    if (wsIsReady)
+    if (question.length > 0 && wsIsReady)
       sendMessage({
         action: "sendToHost",
         type: "clientAnswer",
@@ -73,15 +79,6 @@ const JoinPage = () => {
       })
     setQuestion("")
   }
-
-  useEffect(() => {
-    if (question.length > 0)
-      setTimeout(() => {
-        const input = document.getElementById("answerInput")
-        if (input)
-          input.focus()
-      }, 100)
-  }, [question])
 
 	return (
 		<>
@@ -95,24 +92,33 @@ const JoinPage = () => {
             display: flex;
             flex-direction: column;
             text-align: center;
-            padding-top: ${joined ? `` : `3rem`};
+            padding-top: ${joined > 0 ? `1rem` : `3rem`};
             margin: 1rem;
           `}
         >
-          {!joined ?
+          {joined <= 0 ?
             (
               <div>
                 <form
                   onSubmit={joinPlay}
                 >
                   <Input
-                    css={css`min-width: 80vw;`}
+                    css={css`min-width: 60vw;`}
                     type="text"
-                    size="20"
+                    size={MAX_LEN}
+                    maxLength={MAX_LEN}
                     placeholder="Enter team name..."
                     value={inputNick}
                     onChange={e => setInputNick(e.target.value)}
                   />
+                  <span
+                    css={css`
+                      margin-left: 1rem;
+                      color: #AAA;
+                    `}
+                  >
+                    {`${inputNick.length}/${MAX_LEN}`}
+                  </span>
                   <br/>
                   <Button
                     css={css`min-width: 80vw;`}
@@ -143,10 +149,13 @@ const JoinPage = () => {
                   `}
                 >
                   <div>
-                    {question.length > 0 ? question : `Waiting for the next question`}
+                    {joined === 2 ? `Sorry! Party is at max capacity.` : 
+                      question.length > 0 ? 
+                        question : 
+                          `Waiting for the next question`}
                   </div>
                 </div>
-                {question.length > 0 ?
+                {joined === 1 ?
                   (                    
                     <form
                       onSubmit={submitAnswer}

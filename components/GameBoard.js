@@ -240,7 +240,7 @@ const GameBoard = ({className, mode = "host"}) => {
 									`}
 									onClick={startNewPlay}
 								>
-									LET'S PLAY!
+									HOST A GAME!
 								</Button>
 							) : null
 						}
@@ -262,7 +262,7 @@ const GameBoard = ({className, mode = "host"}) => {
 							`}
 							onClick={startPlaySession}
 						>
-							LET'S START!
+							LET'S BEGIN!
 						</Button>
 						{
 							Object.keys(playedQuestions).length > 0 && false ?
@@ -300,12 +300,12 @@ const GameBoard = ({className, mode = "host"}) => {
 								css={css`
 									text-align: center;
 									margin: 1.5rem;
-									padding: 2rem;
+									padding: 1.5rem;
 									background-color: blue;
 									display: flex;
 									flex-direction: column;
-									width: calc((100vw - (${connectedClients.length}*8.5rem)) / ${connectedClients.length});
-									min-width: calc((100vw - 50rem) / 6);
+									width: calc((100vw - 8rem - (${connectedClients.length}*6rem)) / ${connectedClients.length});
+									min-width: calc((100vw - 44rem) / 6);
 									max-width: calc((100vw - 26rem) / 3);
 								`}
 							>
@@ -313,6 +313,7 @@ const GameBoard = ({className, mode = "host"}) => {
 									css={css`
 										font-size: ${connectedClients.length <= 5 ? `2rem` : `1.25rem`};
 										margin-bottom: 1.5rem;
+										overflow: hidden;
 									`}
 								>
 									{`${c}`}
@@ -434,6 +435,7 @@ const GameBoard = ({className, mode = "host"}) => {
 														flex-direction: row;
 														margin: 1.5rem;
 														justify-content: center;
+														flex-wrap: wrap;
 													`}
 												>
 													{connectedClients.map(c => {
@@ -443,7 +445,7 @@ const GameBoard = ({className, mode = "host"}) => {
 																	margin: 1rem;
 																	width: 2rem;
 																	height: 2rem;
-																	background-color: ${clientAnswers[c] && clientAnswers[c].length > 0 ? `#AFF880` : `red`}
+																	background-color: ${clientAnswers[c] && clientAnswers[c].length > 0 ? `#AFF880` : `white`}
 																`}
 															>
 															</div>
@@ -453,17 +455,23 @@ const GameBoard = ({className, mode = "host"}) => {
 											</div>
 									 	) :
 										(
-											<div>
-												{Object.keys(clientAnswers).map(c => {
+											<div
+												css={css`
+													display: grid;
+													grid-template-columns: 1fr 1fr;
+													font-size: 1.25rem;
+												`}
+											>
+												{connectedClients.map(c => {
 													const cAns = clientAnswers[c]
 													let tag
 													let color
-													if (cAns.toUpperCase() === answers[currentQuestion]) {
-														tag = "CORRECT"
-														color = "#AFF880"
-													} else if (cAns === "<abstain>" || cAns.length <= 0) {
+													if (!cAns || cAns === "<abstain>" || cAns.length <= 0) {
 														tag = "SKIPPED"
-														color = "white"
+														color = "#3333ff"
+													} else if (cAns.toUpperCase() === answers[currentQuestion]) {
+														tag = "CORRECT"
+														color = "#33cc33"
 													} else {
 														tag = "WRONG"
 														color = "red"
@@ -475,36 +483,31 @@ const GameBoard = ({className, mode = "host"}) => {
 																display: flex;
 																flex-direction: row;
 																margin: 1rem;
+																border: 3px solid ${color};
+																cursor: pointer;
+																padding: 1.5rem;
+    														overflow-wrap: anywhere;
 															`}
+															onClick={() => {
+																if (tag === "WRONG") {
+																	overrideAnswer(c)
+																}
+															}}
 														>
 															<div
 																css={css`
-																	margin-right: auto;
+																	margin-right: 1rem;
+																	max-width: 40%;
 																`}
 															>
 																{c}
 															</div>
 															<div
 																css={css`
-																	margin-right: 1rem;
-																	margin-left: 1rem;
+																	margin-left: auto;
 																`}
 															>
 																{cAns}
-															</div>
-															<div
-																css={css`
-																	margin-left: auto;
-																	color: ${color};
-																	cursor: pointer;
-																`}
-																onClick={() => {
-																	if (tag === "WRONG") {
-																		overrideAnswer(c)
-																	}
-																}}
-															>
-																{tag}
 															</div>
 														</div>
 													)
