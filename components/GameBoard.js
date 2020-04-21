@@ -445,7 +445,7 @@ const GameBoard = ({className, mode = "host"}) => {
 																	margin: 1rem;
 																	width: 2rem;
 																	height: 2rem;
-																	background-color: ${clientAnswers[c] && clientAnswers[c].length > 0 ? `#AFF880` : `white`}
+																	background-color: ${clientAnswers && clientAnswers[c] && clientAnswers[c].length > 0 ? `#AFF880` : `white`}
 																`}
 															>
 															</div>
@@ -463,6 +463,7 @@ const GameBoard = ({className, mode = "host"}) => {
 												`}
 											>
 												{connectedClients.map(c => {
+													if (!clientAnswers) return
 													const cAns = clientAnswers[c]
 													let tag
 													let color
