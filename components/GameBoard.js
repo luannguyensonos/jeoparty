@@ -56,7 +56,8 @@ const GameBoard = ({className, mode = "host"}) => {
 		startNewQuestion,
 		endCurrentQuestion,
 		overrideAnswer,
-		resetPlayState
+		resetPlayState,
+		rewriteAnswer
 	} = useContext(GameContext)
 	const [editing, setEditing] = useState("")
 	const [inputC, setInputC] = useState("")
