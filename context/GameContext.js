@@ -20,6 +20,7 @@ export const GameContext = React.createContext({
   playedQuestions: {},
   clients: {},
   clientAnswers: {},
+  answerOverrides: [],
   setCategory: str => {},
   setQuestion: str => {},
   setAnswer: str => {},
@@ -32,6 +33,7 @@ export const GameContext = React.createContext({
   startNewQuestion: (id) => {},
   endCurrentQuestion: () => {},
   overrideAnswer: (str) => {},
+  rewriteAnswer: (str) => {},
   resetPlayState: () => {}
 })
 
@@ -64,6 +66,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
   const [gameClock, setGameClock] = useState(GAME_TIME)
   const [playedQuestions, addPlayedQuestion] = useReducer(objReducer, {})
   const [clientAnswers, setClientAnswers] = useReducer(objReducer, {})
+  const [answerOverrides, setAnswerOverrides] = useState([])
   const [rejects, setRejects] = useState([])
   const [clients, setClients] = useReducer((oldObj, newObj) => {
     let retObj
@@ -263,6 +266,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
       return agg
     }, {})
     setClientAnswers(newAnswers)
+    setAnswerOverrides([])
 
     sendMessage({
       action: "broadcastToClients",
@@ -307,7 +311,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
     Object.keys(clientAnswers).forEach(c => {
       const cAns = clientAnswers[c]
       if (!cAns || !clients[c]) return
-      if (cAns.toUpperCase() === answers[currentQuestion]) {
+      if (cAns.toUpperCase() === answers[currentQuestion] || answerOverrides.includes(c)) {
         clients[c].score += value
       } else if (cAns !== "<abstain>" && cAns.length > 0) {
         clients[c].score -= value
@@ -318,6 +322,10 @@ const GameProvider = ({children, gameId, playId = null}) => {
   }
 
   const overrideAnswer = (team) => {
+    setAnswerOverrides(oldArray => [...oldArray, team])
+  }
+
+  const rewriteAnswer = (team) => {
     setClientAnswers({
       [team]: answers[currentQuestion]
     })
@@ -344,6 +352,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
       playedQuestions,
       clients,
       clientAnswers,
+      answerOverrides,
       setCategory,
       setQuestion,
       setAnswer,
@@ -356,6 +365,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
       startNewQuestion,
       endCurrentQuestion,
       overrideAnswer,
+      rewriteAnswer,
       resetPlayState
     }}>
       {children}

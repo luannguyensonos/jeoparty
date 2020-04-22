@@ -3,6 +3,8 @@ import React, { useState, useContext, useEffect } from "react"
 import styled from "@emotion/styled"
 import { css, jsx } from "@emotion/core"
 import { Modal } from '@material-ui/core'
+import FuzzySet from "fuzzyset.js"
+import { FaWindowClose, FaExclamationTriangle } from "react-icons/fa"
 import Input from "../components/Input"
 import Button from "../components/Button"
 import { GameContext } from "../context/GameContext"
@@ -41,6 +43,7 @@ const GameBoard = ({className, mode = "host"}) => {
 		playedQuestions,
 		clients,
 		clientAnswers,
+		answerOverrides,
 		setCategory,
 		setQuestion,
 		setAnswer,
@@ -59,6 +62,7 @@ const GameBoard = ({className, mode = "host"}) => {
 	const [inputC, setInputC] = useState("")
 	const [inputQ, setInputQ] = useState("")
 	const [inputA, setInputA] = useState("")
+	const [fuzzyAnswer, setFuzzyAnswer] = useState(null)
 
 	const handleClick = ({target}) => {
 		if (mode === "edit") {
@@ -121,6 +125,17 @@ const GameBoard = ({className, mode = "host"}) => {
 		if (gameState === 4)
 			endCurrentQuestion()
 	}
+
+	useEffect(() => {
+		try {
+			console.log("New question, new fuzzy")
+			if (answers[currentQuestion]) {
+				setFuzzyAnswer(new FuzzySet([answers[currentQuestion]]))
+			}
+		} catch (err) {
+			console.log("Fuzzy error", err)
+		}
+	}, [currentQuestion])
 
 	const connectedClients = Object.keys(clients).filter(c => { return clients[c].connected })
 
@@ -441,6 +456,7 @@ const GameBoard = ({className, mode = "host"}) => {
 													{connectedClients.map(c => {
 														return (
 															<div
+																key={`in_${c}`}
 																css={css`
 																	margin: 1rem;
 																	width: 2rem;
@@ -465,17 +481,33 @@ const GameBoard = ({className, mode = "host"}) => {
 												{connectedClients.map(c => {
 													if (!clientAnswers) return
 													const cAns = clientAnswers[c]
+
+													let fuzzyScore = 0
+													if (fuzzyAnswer && cAns && cAns.length > 0) {
+														const fuzzyLayer1 = fuzzyAnswer.get(cAns)
+														if (fuzzyLayer1 && fuzzyLayer1.length > 0) {
+															const fuzzyLayer2 = fuzzyLayer1[0]
+															if (fuzzyLayer2.length > 0) {
+																fuzzyScore = fuzzyLayer2[0]
+															}
+														}
+														console.log("Compare", cAns, answers[currentQuestion], fuzzyScore)
+													}
+
 													let tag
 													let color
 													if (!cAns || cAns === "<abstain>" || cAns.length <= 0) {
 														tag = "SKIPPED"
 														color = "#3333ff"
-													} else if (cAns.toUpperCase() === answers[currentQuestion]) {
+													} else if (cAns.toUpperCase() === answers[currentQuestion] || answerOverrides.includes(c)) {
 														tag = "CORRECT"
 														color = "#33cc33"
+													} else if (fuzzyScore >= 0.6) {
+														tag = "FUZZY"
+														color = "#ffff00"
 													} else {
 														tag = "WRONG"
-														color = "red"
+														color = "#cc0000"
 													}
 													return (
 														<div
@@ -484,13 +516,15 @@ const GameBoard = ({className, mode = "host"}) => {
 																display: flex;
 																flex-direction: row;
 																margin: 1rem;
-																border: 3px solid ${color};
+																border: 6px solid ${color};
 																cursor: pointer;
 																padding: 1.5rem;
     														overflow-wrap: anywhere;
 															`}
 															onClick={() => {
 																if (tag === "WRONG") {
+																	rewriteAnswer(c)
+																} else if (tag === "FUZZY") {
 																	overrideAnswer(c)
 																}
 															}}
@@ -508,7 +542,15 @@ const GameBoard = ({className, mode = "host"}) => {
 																	margin-left: auto;
 																`}
 															>
-																{cAns}
+																<span css={css`margin-right: 1rem;`}>
+																	{cAns}
+																</span>
+																{tag === "WRONG" ?
+																	<FaWindowClose/> :
+																	tag === "FUZZY" ?
+																		<FaExclamationTriangle/> :
+																		null
+																}
 															</div>
 														</div>
 													)
