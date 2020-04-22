@@ -21,24 +21,38 @@ const JoinPage = () => {
   const [question, setQuestion] = useState("")
   const [inputA, setInputA] = useState("")
   const [gameClock, setGameClock] = useState(0)
+  const [message, setMessage] = useState({})
   
   const { wsIsReady, sendMessage } = useWebSocket(message => {
     switch (message.type) {
       case "joinPlayCb":
-        // TODO
         setJoined(1)
         break
       case "joinRejection":
         setJoined(2)
         break
       case "newQuestion":
-        setInputA("")
-        setQuestion(message.question)
-        setGameClock(CLIENT_TIME)
+        if (message.question) {
+          setInputA("")
+          setQuestion(message.question)
+          setGameClock(CLIENT_TIME)
+          setJoined(1)
+        }
         break
       case "timeExpired":
         setQuestion("")
         setGameClock(0)
+        break
+      case "gatherWager":
+        setQuestion(message.category)
+        setJoined(3)
+        setGameClock(CLIENT_TIME)
+        setMessage(message)
+        break
+      case "endGame":
+        setMessage(message)
+        setJoined(4)
+        console.log(message)
         break
       default:
         console.log("No cb handler", message)
@@ -56,27 +70,39 @@ const JoinPage = () => {
       })
   }
 
+  const resetFormState = () => {
+    setQuestion("")
+    setGameClock(0)
+    setInputA("")
+  }
+
   const submitAnswer = (e) => {
     e.preventDefault()
 
     if (question.length > 0 && inputA.length > 0 && wsIsReady) {
+      let toSend = inputA
+      if (joined === 3) {
+        const wager = Number.parseInt(inputA.replace(/\D/g,''))
+        if (wager >= 0 && wager <= message.score)
+          toSend = wager
+        else
+          return
+      }
       sendMessage({
         action: "sendToHost",
         type: "clientAnswer",
         playId: pid,
-        answer: inputA,
+        answer: toSend,
         nickname: inputNick
       })
-      setQuestion("")
-      setGameClock(0)
-      setInputA("")
+      resetFormState()
     }
   }
 
   const skipQuestion = (e) => {
     e.preventDefault()
 
-    if (question.length > 0 && wsIsReady)
+    if (question.length > 0 && wsIsReady) {
       sendMessage({
         action: "sendToHost",
         type: "clientAnswer",
@@ -84,9 +110,9 @@ const JoinPage = () => {
         answer: "<abstain>",
         nickname: inputNick
       })
+      resetFormState()
+    }
 
-    setGameClock(0)
-    setQuestion("")
   }
 
   useEffect(() => {
@@ -167,13 +193,44 @@ const JoinPage = () => {
                   `}
                 >
                   <div>
-                    {joined === 2 ? `Sorry! Party is at max capacity.` : 
-                      question.length > 0 ? 
-                        question : 
-                          `Waiting for the next question`}
+                    {joined === 2 ? `Sorry! Party is at max capacity.` :
+                      joined === 3 ?
+                        (
+                          <div>
+                            <div css={css`margin-bottom: .5rem;`}>
+                              What is your wager for the final category?
+                            </div>
+                            <div css={css`margin-bottom: 1.5rem;`}>
+                              {`${message.category}`}
+                            </div>
+                            <div>
+                              {`You have $${message.score}`}
+                            </div>
+                          </div>
+                        ) :
+                        joined === 4 && message.winner && message.winner.teams ?
+                          (
+                            <div>
+                              <div css={css`margin-bottom: .5rem;`}>
+                                {message.winner.teams.includes(inputNick) ?
+                                  (message.winner.teams.length > 1 ?
+                                    `You tied for the win!` : `Congrats, you won!`) :
+                                  `The winning team had a score of $${message.winner.highest}`}
+                              </div>
+                              <div css={css`margin-bottom: 1.5rem;`}>
+                                {`You ended with $${message.score}`}
+                              </div>
+                              <div>
+                                Thanks for playing Jeoparty!
+                              </div>
+                            </div>
+                          ) :
+                          question.length > 0 ? 
+                            question : 
+                              `Waiting for the next question`}
                   </div>
                 </div>
-                {joined === 1 ?
+                {joined === 1 || joined === 3 ?
                   (                    
                     <form
                       onSubmit={submitAnswer}
@@ -197,19 +254,22 @@ const JoinPage = () => {
                         `}
                         onClick={submitAnswer}
                       >
-                        {`Submit${question.length > 0 && gameClock > 0 ? ` within ${gameClock}` : ``}`}
+                        {`Submit${question.length > 0 && gameClock > 0 ? ` (Timer: ${gameClock})` : ``}`}
                       </Button>
                       <br/>
-                      <Button
-                        css={css`
-                          margin-top: .5rem;
-                          width: 80vw;
-                          background-color: #AAA;
-                        `}
-                        onClick={skipQuestion}
-                      >
-                        Skip this one
-                      </Button>
+                      {joined === 1 ?
+                        <Button
+                          css={css`
+                            margin-top: .5rem;
+                            width: 80vw;
+                            background-color: #AAA;
+                          `}
+                          onClick={skipQuestion}
+                        >
+                          Skip this one
+                        </Button>
+                        : null
+                      }
                     </form>
                   ) : null
                 }

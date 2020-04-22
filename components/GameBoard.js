@@ -57,7 +57,8 @@ const GameBoard = ({className, mode = "host"}) => {
 		endCurrentQuestion,
 		overrideAnswer,
 		resetPlayState,
-		rewriteAnswer
+		rewriteAnswer,
+		getConnectedClients
 	} = useContext(GameContext)
 	const [editing, setEditing] = useState("")
 	const [inputC, setInputC] = useState("")
@@ -138,7 +139,7 @@ const GameBoard = ({className, mode = "host"}) => {
 		}
 	}, [currentQuestion])
 
-	const connectedClients = Object.keys(clients).filter(c => { return clients[c].connected })
+	const connectedClients = getConnectedClients()
 
 	return gameState > 0 ? (
 		<>
@@ -270,7 +271,7 @@ const GameBoard = ({className, mode = "host"}) => {
 							text-align: center;
 						`}
 					>
-						INVITE PLAYERS TO JOIN:<br/>{`https://d12oqkjypbclqr.cloudfront.net/join/${playId}`}
+						INVITE PLAYERS TO JOIN:<br/>{`https://d316uwj8ou6gkk.cloudfront.net/join/${playId}`}
 						<br/>
 						<Button
 							css={css`
@@ -462,7 +463,7 @@ const GameBoard = ({className, mode = "host"}) => {
 																	margin: 1rem;
 																	width: 2rem;
 																	height: 2rem;
-																	background-color: ${clientAnswers && clientAnswers[c] && clientAnswers[c].length > 0 ? `#AFF880` : `white`}
+																	background-color: ${clientAnswers && clientAnswers[c] && clientAnswers[c].length > 0 ? `#AFF880` : `#666`}
 																`}
 															>
 															</div>
@@ -470,7 +471,7 @@ const GameBoard = ({className, mode = "host"}) => {
 													})}
 												</div>
 											</div>
-									 	) :
+									 	) : gameState === 4 && currentQuestion !== "wager" ?
 										(
 											<div
 												css={css`
@@ -557,7 +558,8 @@ const GameBoard = ({className, mode = "host"}) => {
 													)
 												})}
 											</div>
-										)
+										) :
+										null
 									}
 								</div>
 							</div>

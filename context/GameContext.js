@@ -5,6 +5,7 @@ import { useWebSocket } from "../hooks/WSClient"
 import generateId from "../util/id"
 
 export const GAME_TIME = 25
+export const MAX_CLIENTS = 18
 
 export const GameContext = React.createContext({
   gameId: "",
@@ -34,7 +35,8 @@ export const GameContext = React.createContext({
   endCurrentQuestion: () => {},
   overrideAnswer: (str) => {},
   rewriteAnswer: (str) => {},
-  resetPlayState: () => {}
+  resetPlayState: () => {},
+  getConnectedClients: () => {}
 })
 
 const objReducer = (oldObj, newItem) => {
@@ -58,14 +60,19 @@ const GameProvider = ({children, gameId, playId = null}) => {
     Game states:
       0 not loaded yet
       1 loaded but not started
-      2 started (waiitng for question)
+      2 started
       3 in question
       4 in scoring mode
+      5 awaiting the next question
+      6 normal game done, show category and gather wagers
+        final question loops back to state 3
+      7 game is OVER
   */
   const [currentQuestion, setCurrentQuestion] = useState("")
   const [gameClock, setGameClock] = useState(GAME_TIME)
   const [playedQuestions, addPlayedQuestion] = useReducer(objReducer, {})
   const [clientAnswers, setClientAnswers] = useReducer(objReducer, {})
+  const [clientWagers, setClientWagers] = useReducer(objReducer, {})
   const [answerOverrides, setAnswerOverrides] = useState([])
   const [rejects, setRejects] = useState([])
   const [clients, setClients] = useReducer((oldObj, newObj) => {
@@ -78,16 +85,18 @@ const GameProvider = ({children, gameId, playId = null}) => {
         if (newObj.value) {
           const connected = Object.keys(oldObj)
             .filter(c => { return oldObj[c].connected })
-          if (connected.length >= 18) {
+          if (connected.length >= MAX_CLIENTS) {
             setRejects(oldArray => [...oldArray, newObj.connectionId])
             return oldObj
           }
         }
         if (oldObj[newObj.id]) {
+          oldObj[newObj.id].connectionId = newObj.connectionId
           oldObj[newObj.id].connected = newObj.value
         } else {
           oldObj[newObj.id] = {
             score: 0,
+            connectionId: newObj.connectionId,
             connected: newObj.value
           }
         }
@@ -173,7 +182,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
       case "clientAnswer":
         if (message.nickname) {
           setClientAnswers({
-            [message.nickname]: message.answer
+            [message.nickname]: message.answer+""
           })
         }
         break
@@ -259,6 +268,10 @@ const GameProvider = ({children, gameId, playId = null}) => {
     }
   }
 
+  const getConnectedClients = () => {
+    return Object.keys(clients).filter(c => { return clients[c].connected })
+  }
+
   const startNewQuestion = (id) => {
     // Reset clientAnswers
     const newAnswers = Object.keys(clientAnswers).reduce((agg, c) => {
@@ -268,12 +281,26 @@ const GameProvider = ({children, gameId, playId = null}) => {
     setClientAnswers(newAnswers)
     setAnswerOverrides([])
 
-    sendMessage({
-      action: "broadcastToClients",
-      type: "newQuestion",
-      playId,
-      question: questions[id]
-    })
+    if (id !== "wager") {
+      sendMessage({
+        action: "broadcastToClients",
+        type: "newQuestion",
+        playId,
+        question: questions[id]
+      })
+    } else {
+      getConnectedClients().forEach(c => {
+        const thisClient = clients[c]
+        sendMessage({
+          action: "sendToConnection",
+          type: "gatherWager",
+          playId,
+          connectionId: thisClient.connectionId,
+          score: thisClient.score,
+          category: categories.final
+        })
+      })
+    }
     setCurrentQuestion(id)
     setGameState(3)
     setGameClock(GAME_TIME)
@@ -306,20 +333,82 @@ const GameProvider = ({children, gameId, playId = null}) => {
       [currentQuestion] : true
     })
 
-    // Increment scores
-    const value = Number.parseInt(currentQuestion.split("_")[0])
-    Object.keys(clientAnswers).forEach(c => {
-      const cAns = clientAnswers[c]
-      if (!cAns || !clients[c]) return
-      if (cAns.toUpperCase() === answers[currentQuestion] || answerOverrides.includes(c)) {
-        clients[c].score += value
-      } else if (cAns !== "<abstain>" && cAns.length > 0) {
-        clients[c].score -= value
-      }
-    })
+    if (currentQuestion !== "wager") {
+      const isFinal = currentQuestion === "final"
 
-    setGameState(5)
+      // Increment scores
+      Object.keys(clientAnswers).forEach(c => {
+        const value = isFinal ?
+          clientWagers[c] :
+          Number.parseInt(currentQuestion.split("_")[0])
+        const cAns = clientAnswers[c]
+        if (!cAns || !clients[c]) return
+        if (cAns.toUpperCase() === answers[currentQuestion] || answerOverrides.includes(c)) {
+          clients[c].score += value
+        } else if (isFinal || (cAns !== "<abstain>" && cAns.length > 0)) {
+          clients[c].score -= value
+        }
+      })
+      if (isFinal) {
+        setGameState(7)
+      } else {
+        setGameState(5)
+      }
+    } else if (currentQuestion === "wager") {
+      // Store the wagers off somewhere, then start the final question
+      const wagers = Object.keys(clientAnswers).reduce((agg, c) => {
+        agg[c] = Number.parseInt(clientAnswers[c]) || 0
+        return agg
+      }, {})
+      setClientWagers(wagers)
+      startNewQuestion("final")
+    }
   }
+
+  // Final Jeopardy
+  useEffect(() => {
+    if (gameState === 5) {
+      if (Object.keys(playedQuestions).length >= 30) {
+        setQuestion({
+          "wager": categories.final
+        })
+        setAnswer({
+          "wager": "Get ready for your final clue. Good luck."
+        })
+        setGameState(6)
+      }
+    } else if (gameState === 6) {
+      startNewQuestion("wager")
+    } else if (gameState === 7) {
+      // HANDLE THE END GAME HERE!
+      const winner = getConnectedClients().reduce((agg, c) => {
+        const score = clients[c].score
+        if (score > agg.highest) {
+          agg.highest = score
+          agg.teams = [c]
+        } else if (score === agg.highest) {
+          agg.teams.push(c)
+        }
+        return agg
+      }, {
+        teams: [],
+        highest: 0
+      })
+
+      console.log("WINNER", winner)
+      getConnectedClients().forEach(c => {
+        const thisClient = clients[c]
+        sendMessage({
+          action: "sendToConnection",
+          type: "endGame",
+          playId,
+          connectionId: thisClient.connectionId,
+          score: thisClient.score,
+          winner: winner
+        })
+      })
+    }
+  }, [gameState])
 
   const overrideAnswer = (team) => {
     setAnswerOverrides(oldArray => [...oldArray, team])
@@ -366,7 +455,8 @@ const GameProvider = ({children, gameId, playId = null}) => {
       endCurrentQuestion,
       overrideAnswer,
       rewriteAnswer,
-      resetPlayState
+      resetPlayState,
+      getConnectedClients
     }}>
       {children}
     </GameContext.Provider>
