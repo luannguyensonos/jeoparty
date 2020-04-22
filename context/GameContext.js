@@ -90,10 +90,21 @@ const GameProvider = ({children, gameId, playId = null}) => {
             return oldObj
           }
         }
-        if (oldObj[newObj.id]) {
+        const debug = true
+        if (newObj.value && debug) {
+          ["",1,2,3].forEach(i=>{
+            oldObj[`${newObj.id}${i}`] = {
+              score: 0,
+              connectionId: newObj.connectionId,
+              connected: true
+            }
+          })
+        }
+        else if (oldObj[newObj.id]) {
           oldObj[newObj.id].connectionId = newObj.connectionId
           oldObj[newObj.id].connected = newObj.value
-        } else {
+        }
+        else {
           oldObj[newObj.id] = {
             score: 0,
             connectionId: newObj.connectionId,

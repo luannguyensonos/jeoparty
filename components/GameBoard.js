@@ -143,209 +143,161 @@ const GameBoard = ({className, mode = "host"}) => {
 
 	return gameState > 0 ? (
 		<>
-			<div className={className}>
-				{RANGE.map((i) => {
-					const cid = `c_${i}`
-					return (
-						<div
-							id={cid}
-							key={cid}
-							onClick={handleClick}
-						>
-							{categories[i] || `CATEGORY ${i}`}
-						</div>
-					)
-				})}
-				{DOLLAR_RANGE.map((i) => {
-					const squares = []
-					RANGE.forEach(j => {
-						const id = `${i}_${j}`
-						squares.push(
-							<div
-								id={`g_${id}`}
-								key={`g_${id}`}
-								onClick={playedQuestions[id] ? ()=>{} : handleClick}
-							>
-								{mode === "host" ?
-									(
-										<div
-											className={`dollar`}
-											id={`d_${id}`}
-										>
-											{playedQuestions[id] ? `` : `$${i}`}
-										</div>
-									) :
-									(
-										<>
-											<div
-												id={`q_${id}`}
-											>
-												Q: {questions[id] || ``}
-											</div>
-											<div
-												id={`a_${id}`}
-											>
-												A: {answers[id] || ``}
-											</div>
-										</>
-									)
-								}
-							</div>
-						)
-					})
-					return squares
-				})}
-				{mode === "edit" ?
-					(
-						<>
-							<div
-								id="c_final"
-								onClick={handleClick}
-							>
-								{categories.final || `FINAL CATEGORY`}
-							</div>
-							<div
-								id="g_final"
-								onClick={handleClick}
-							>
-								<div
-									id="q_final"
-								>
-									Q: {questions.final || ``}
-								</div>
-								<div
-									id="a_final"
-								>
-									A: {answers.final || ``}
-								</div>
-							</div>
-						</>
-					) : null
-				}
-			</div>
-			{mode === "edit" ?
-				(
-					<div>
-						<Input
-							type="text"
-							size="24"
-							placeholder="Untitled Game"
-							value={name}
-							onChange={e => setName(e.target.value)}
-						/>
-						&nbsp;&nbsp;BY:&nbsp;
-						<Input
-							type="text"
-							size="12"
-							placeholder="User_123"
-							value={creator}
-							onChange={e => setCreator(e.target.value)}
-						/>
-						<Button
-							css={css`
-								margin-left: 3rem;
-							`}
-							onClick={saveGame}
-						>
-							SAVE GAME
-						</Button>
-						{isGameFilledIn() ?
-							(
-								<Button
-									css={css`
-										margin-left: 3rem;
-									`}
-									onClick={startNewPlay}
-								>
-									HOST A GAME!
-								</Button>
-							) : null
-						}
-					</div>
-				) : gameState === 1 ?
-				(
-					<div
-						css={css`
-							display: flex;
-							flex-direction: column;
-							text-align: center;
-						`}
-					>
-						INVITE PLAYERS TO JOIN:<br/>{`https://d316uwj8ou6gkk.cloudfront.net/join/${playId}`}
-						<br/>
-						<Button
-							css={css`
-								margin-top: 1.5rem;
-							`}
-							onClick={startPlaySession}
-						>
-							LET'S BEGIN!
-						</Button>
-						{
-							Object.keys(playedQuestions).length > 0 && false ?
-							(
-								<Button
-									css={css`
-										margin-top: 1.5rem;
-										background-color: #555;
-									`}
-									onClick={resetPlayState}
-								>
-									!!! RESET BOARD !!!
-								</Button>
-							) : null
-						}
-					</div>
-				) : null
-			}
-			<div
-				css={css`
-					display: flex;
-					font-size: 2rem;
-					color: white;
-					justify-content: center;
-					align-content: center;
-					flex-wrap: wrap;
-				`}
-			>
-				{
-					connectedClients.map(c => {
-						const client = clients[c]
+			<div>
+				<div className={className}>
+					{RANGE.map((i) => {
+						const cid = `c_${i}`
 						return (
 							<div
-								key={`client${c}`}
-								css={css`
-									text-align: center;
-									margin: 1.5rem;
-									padding: 1.5rem;
-									background-color: blue;
-									display: flex;
-									flex-direction: column;
-									width: calc((100vw - 8rem - (${connectedClients.length}*6rem)) / ${connectedClients.length});
-									min-width: calc((100vw - 44rem) / 6);
-									max-width: calc((100vw - 26rem) / 3);
-								`}
+								id={cid}
+								key={cid}
+								onClick={handleClick}
 							>
-								<div
-									css={css`
-										font-size: ${connectedClients.length <= 5 ? `2rem` : `1.25rem`};
-										margin-bottom: 1.5rem;
-										overflow: hidden;
-									`}
-								>
-									{`${c}`}
-								</div>
-								<div
-									css={css`
-										font-size: ${connectedClients.length <= 5 ? `1.75rem` : `1.25rem`};
-										margin-top: auto;
-									`}
-								>
-									{`$${client.score}`}
-								</div>
+								{categories[i] || `CATEGORY ${i}`}
 							</div>
 						)
-					})
+					})}
+					{DOLLAR_RANGE.map((i) => {
+						const squares = []
+						RANGE.forEach(j => {
+							const id = `${i}_${j}`
+							squares.push(
+								<div
+									id={`g_${id}`}
+									key={`g_${id}`}
+									onClick={playedQuestions[id] ? ()=>{} : handleClick}
+								>
+									{mode === "host" ?
+										(
+											<div
+												className={`dollar`}
+												id={`d_${id}`}
+											>
+												{playedQuestions[id] ? `` : `$${i}`}
+											</div>
+										) :
+										(
+											<>
+												<div
+													id={`q_${id}`}
+												>
+													Q: {questions[id] || ``}
+												</div>
+												<div
+													id={`a_${id}`}
+												>
+													A: {answers[id] || ``}
+												</div>
+											</>
+										)
+									}
+								</div>
+							)
+						})
+						return squares
+					})}
+					{mode === "edit" ?
+						(
+							<>
+								<div
+									id="c_final"
+									onClick={handleClick}
+								>
+									{categories.final || `FINAL CATEGORY`}
+								</div>
+								<div
+									id="g_final"
+									onClick={handleClick}
+								>
+									<div
+										id="q_final"
+									>
+										Q: {questions.final || ``}
+									</div>
+									<div
+										id="a_final"
+									>
+										A: {answers.final || ``}
+									</div>
+								</div>
+							</>
+						) : null
+					}
+				</div>
+				{mode === "edit" ?
+					(
+						<div>
+							<Input
+								type="text"
+								size="24"
+								placeholder="Untitled Game"
+								value={name}
+								onChange={e => setName(e.target.value)}
+							/>
+							&nbsp;&nbsp;BY:&nbsp;
+							<Input
+								type="text"
+								size="12"
+								placeholder="User_123"
+								value={creator}
+								onChange={e => setCreator(e.target.value)}
+							/>
+							<Button
+								css={css`
+									margin-left: 3rem;
+								`}
+								onClick={saveGame}
+							>
+								SAVE GAME
+							</Button>
+							{isGameFilledIn() ?
+								(
+									<Button
+										css={css`
+											margin-left: 3rem;
+										`}
+										onClick={startNewPlay}
+									>
+										HOST A GAME!
+									</Button>
+								) : null
+							}
+						</div>
+					) : gameState === 1 ?
+					(
+						<div
+							css={css`
+								display: flex;
+								flex-direction: column;
+								text-align: center;
+							`}
+						>
+							INVITE PLAYERS TO JOIN:<br/>{`https://d316uwj8ou6gkk.cloudfront.net/join/${playId}`}
+							<br/>
+							<Button
+								css={css`
+									margin-top: 1.5rem;
+								`}
+								onClick={startPlaySession}
+							>
+								LET'S BEGIN!
+							</Button>
+							{
+								Object.keys(playedQuestions).length > 0 && false ?
+								(
+									<Button
+										css={css`
+											margin-top: 1.5rem;
+											background-color: #555;
+										`}
+										onClick={resetPlayState}
+									>
+										!!! RESET BOARD !!!
+									</Button>
+								) : null
+							}
+						</div>
+					) : null
 				}
 			</div>
 			<Modal
