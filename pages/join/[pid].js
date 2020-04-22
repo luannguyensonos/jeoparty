@@ -8,6 +8,7 @@ import Input from "../../components/Input"
 import Button from "../../components/Button"
 import { useWebSocket } from "../../hooks/WSClient"
 import { GAME_TIME } from "../../context/GameContext"
+import { useLocalStorage } from "react-use"
 
 const MAX_LEN = 20
 const CLIENT_TIME = GAME_TIME-1
@@ -16,8 +17,9 @@ const JoinPage = () => {
 	const router = useRouter()
   const { pid } = router.query
   
+  const [nickname, setNickname] = useLocalStorage("nickname", "")
   const [inputNick, setInputNick] = useState("")
-  const [joined, setJoined] = useState(0)
+  const [joined, setJoined] = useState(-1)
   const [question, setQuestion] = useState("")
   const [inputA, setInputA] = useState("")
   const [gameClock, setGameClock] = useState(0)
@@ -37,11 +39,13 @@ const JoinPage = () => {
           setQuestion(message.question)
           setGameClock(CLIENT_TIME)
           setJoined(1)
+          setMessage(message)
         }
         break
       case "timeExpired":
         setQuestion("")
         setGameClock(0)
+        setMessage(message)
         break
       case "gatherWager":
         setQuestion(message.category)
@@ -62,13 +66,34 @@ const JoinPage = () => {
   const joinPlay = (e) => {
     e.preventDefault()
 
-    if (inputNick.length > 0 && wsIsReady)
+    if (inputNick.length > 0 && wsIsReady) {
       sendMessage({
         action: "joinPlay",
         playId: pid,
         nickname: inputNick
       })
+    }
   }
+
+  useEffect(() => {
+    console.log("Loading?...")
+    if (joined < 0 && wsIsReady) {
+      console.log("Checking for existing name")
+      if (nickname.length > 0) {
+        console.log("Already has a name, auto-join...")
+        sendMessage({
+          action: "joinPlay",
+          playId: pid,
+          nickname: nickname
+        })
+      } else {
+        setJoined(0)
+      }
+    } else if (joined === 1 && nickname.length <= 0) {
+      // Setting nickname for reloads
+      setNickname(inputNick)
+    }
+  }, [joined, wsIsReady])
 
   const resetFormState = () => {
     setQuestion("")
@@ -93,7 +118,7 @@ const JoinPage = () => {
         type: "clientAnswer",
         playId: pid,
         answer: toSend,
-        nickname: inputNick
+        nickname: nickname
       })
       resetFormState()
     }
@@ -108,7 +133,7 @@ const JoinPage = () => {
         type: "clientAnswer",
         playId: pid,
         answer: "<abstain>",
-        nickname: inputNick
+        nickname: nickname
       })
       resetFormState()
     }
@@ -140,7 +165,7 @@ const JoinPage = () => {
             margin: 1rem;
           `}
         >
-          {joined <= 0 ?
+          {joined === 0 ?
             (
               <div>
                 <form
@@ -176,6 +201,9 @@ const JoinPage = () => {
                   </Button>
                 </form>
               </div>
+            ) : joined < 0 ?
+            (
+              <div>Loading...</div>
             ) :
             (
               <div>
@@ -212,7 +240,7 @@ const JoinPage = () => {
                           (
                             <div>
                               <div css={css`margin-bottom: .5rem;`}>
-                                {message.winner.teams.includes(inputNick) ?
+                                {message.winner.teams.includes(nickname) ?
                                   (message.winner.teams.length > 1 ?
                                     `You tied for the win!` : `Congrats, you won!`) :
                                   `The winning team had a score of $${message.winner.highest}`}
@@ -226,8 +254,32 @@ const JoinPage = () => {
                             </div>
                           ) :
                           question.length > 0 ? 
-                            question : 
-                              `Waiting for the next question`}
+                          (
+                            <>
+                              {message.category && message.category.length > 0 ?
+                                <div css={css`margin-bottom: 1.5rem;`}>
+                                  {`${message.category}${message.value ? ` for $${message.value}`: ``}`}
+                                </div>
+                                : ``}
+                              <div>
+                                {question}
+                              </div>
+                            </>
+                          ) :
+                          (
+                            <>
+                              {message.answer &&  message.answer.length > 0 ?
+                                <div css={css`margin-bottom: 1rem;`}>
+                                  {`Previous Answer:`}<br/>
+                                  {message.answer}
+                                </div>
+                                : ``}
+                              <div>
+                                {`Waiting for the next question...`}
+                              </div>
+                            </>
+                          ) 
+                    }
                   </div>
                 </div>
                 {joined === 1 || joined === 3 ?

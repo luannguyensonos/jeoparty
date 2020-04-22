@@ -90,7 +90,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
             return oldObj
           }
         }
-        const debug = true
+        const debug = false
         if (newObj.value && debug) {
           ["",1,2,3].forEach(i=>{
             oldObj[`${newObj.id}${i}`] = {
@@ -293,11 +293,17 @@ const GameProvider = ({children, gameId, playId = null}) => {
     setAnswerOverrides([])
 
     if (id !== "wager") {
+      const value = id === "final" ?
+        null :
+        Number.parseInt(id.split("_")[0])
+
       sendMessage({
         action: "broadcastToClients",
         type: "newQuestion",
         playId,
-        question: questions[id]
+        question: questions[id],
+        category: categories[id.slice(-1)],
+        value: value
       })
     } else {
       getConnectedClients().forEach(c => {
@@ -332,6 +338,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
           sendMessage({
             action: "broadcastToClients",
             type: "timeExpired",
+            answer: answers[currentQuestion],
             playId
           })
         }  
@@ -381,7 +388,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
     if (gameState === 5) {
       if (Object.keys(playedQuestions).length >= 30) {
         setQuestion({
-          "wager": categories.final
+          "wager": `What is your wager for the final category? ${categories.final}`
         })
         setAnswer({
           "wager": "Get ready for your final clue. Good luck."

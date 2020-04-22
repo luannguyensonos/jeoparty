@@ -226,7 +226,7 @@ const GameBoard = ({className, mode = "host"}) => {
 				</div>
 				{mode === "edit" ?
 					(
-						<div>
+						<div css={css`text-align: center;`}>
 							<Input
 								type="text"
 								size="24"
