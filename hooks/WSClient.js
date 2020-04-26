@@ -13,6 +13,7 @@ export const useWebSocket = (cb, keepAlive = false) => {
     // const WS_URL = process.env.WS_SOCKET_URL || "wss://fccbc7mdt3.execute-api.us-east-1.amazonaws.com/dev/"
     if (!wsClient) {
         console.log("Creating WS connection:", process.env.WS_SOCKET_URL, WS_URL)
+        setIsReady(false)
         setWsClient(new WebSocket(WS_URL))
     } else {
         console.log("Adding WS listeners:", wsClient)
@@ -44,11 +45,18 @@ export const useWebSocket = (cb, keepAlive = false) => {
   }, [wsClient])
 
   const sendMessage = (data, cb) => {
-    wsClient.send(JSON.stringify(data))
+    if (wsIsReady)
+      wsClient.send(JSON.stringify(data))
   }
+
+  const resetConnection = () => {
+    setWsClient(null)
+  }
+
 
   return {
     wsIsReady,
-    sendMessage
+    sendMessage,
+    resetConnection
   }
 }

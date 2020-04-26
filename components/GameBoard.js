@@ -58,7 +58,10 @@ const GameBoard = ({className, mode = "host"}) => {
 		overrideAnswer,
 		resetPlayState,
 		rewriteAnswer,
-		getConnectedClients
+		getConnectedClients,
+		toast,
+		setToast,
+		queueAutoSave
 	} = useContext(GameContext)
 	const [editing, setEditing] = useState("")
 	const [inputC, setInputC] = useState("")
@@ -96,7 +99,7 @@ const GameBoard = ({className, mode = "host"}) => {
 		}
 
 		// Take this line out to disable auto-saving
-		saveGame()
+		queueAutoSave(true)
 
 		// Try to advance to the next question
 		// This is janky, but it works. Oh well.
@@ -143,8 +146,13 @@ const GameBoard = ({className, mode = "host"}) => {
 
 	return gameState > 0 ? (
 		<>
-			<div>
-				<div className={className}>
+			<div className={className}>
+				{toast.length > 0 &&
+					<div id="toastMsg">
+						{toast}
+					</div>
+				}
+				<div className="gameGrid">
 					{RANGE.map((i) => {
 						const cid = `c_${i}`
 						return (
@@ -246,7 +254,7 @@ const GameBoard = ({className, mode = "host"}) => {
 								css={css`
 									margin-left: 3rem;
 								`}
-								onClick={saveGame}
+								onClick={() => {saveGame()}}
 							>
 								SAVE GAME
 							</Button>
@@ -340,7 +348,10 @@ const GameBoard = ({className, mode = "host"}) => {
 													size="48"
 													placeholder="Category"
 													value={inputC}
-													onChange={e => setInputC(e.target.value)}
+													onChange={e => {
+														setInputC(e.target.value)
+														setToast("Unsaved changes...")
+													}}
 												/>
 										) :
 										(
@@ -351,7 +362,10 @@ const GameBoard = ({className, mode = "host"}) => {
 													size="48"
 													placeholder="Question"
 													value={inputQ}
-													onChange={e => setInputQ(e.target.value)}
+													onChange={e => {
+														setInputQ(e.target.value)
+														setToast("Unsaved changes...")
+													}}
 												/>
 												<br/><br/>
 												<Input
@@ -359,7 +373,10 @@ const GameBoard = ({className, mode = "host"}) => {
 													size="48"
 													placeholder="Answer"
 													value={inputA}
-													onChange={e => setInputA(e.target.value)}
+													onChange={e => {
+														setInputA(e.target.value)
+														setToast("Unsaved changes...")
+													}}
 												/>
 											</>
 										)
@@ -529,35 +546,48 @@ const GameBoard = ({className, mode = "host"}) => {
 }
 
 const StyledGameBoard = styled(GameBoard)`
-	display: grid;
-	grid-template-columns: repeat(6, 1fr);
-	background-color: blue;
-	color: white;
-	margin: 1rem;
-	text-align: center;
-	font-size: 1.5rem;
-
-	& > div {
-		padding: 1rem;
-		border: 1px solid white;
-		display: flex;
-    flex-direction: column;
-		justify-content: center;
-		min-height: 5rem;
-
+	div.gameGrid {
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
+		background-color: blue;
+		color: white;
+		margin: 1rem;
+		text-align: center;
+		font-size: 1.5rem;
+	
 		& > div {
-			font-size: 1rem;
-			margin: .5rem;
+			padding: 1rem;
+			border: 1px solid white;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			min-height: 5rem;
+	
+			& > div {
+				font-size: 1rem;
+				margin: .5rem;
+			}
+	
+			& > div.dollar {
+				font-size: 3rem;
+			}
 		}
-
-		& > div.dollar {
-			font-size: 3rem;
+	
+		#c_final,
+		#g_final {
+			grid-column: 1 / span 6;
 		}
 	}
 
-	#c_final,
-	#g_final {
-		grid-column: 1 / span 6;
+	#toastMsg {
+		background-color: #AAA;
+		color: white;
+		padding: 1rem;
+		position: absolute;
+		top: 0;
+		left: 50%;
+		transform: translateX(-50%);
+
 	}
 `
 

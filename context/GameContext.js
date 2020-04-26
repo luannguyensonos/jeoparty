@@ -22,6 +22,7 @@ export const GameContext = React.createContext({
   clients: {},
   clientAnswers: {},
   answerOverrides: [],
+  toast: "",
   setCategory: str => {},
   setQuestion: str => {},
   setAnswer: str => {},
@@ -36,7 +37,9 @@ export const GameContext = React.createContext({
   overrideAnswer: (str) => {},
   rewriteAnswer: (str) => {},
   resetPlayState: () => {},
-  getConnectedClients: () => {}
+  getConnectedClients: () => {},
+  setToast: (str) => {},
+  queueAutoSave: (bool) => {}
 })
 
 const objReducer = (oldObj, newItem) => {
@@ -56,6 +59,15 @@ const GameProvider = ({children, gameId, playId = null}) => {
   const [name, setName] = useState("")
   const [creator, setCreator] = useState("")
   const [gameState, setGameState] = useState(0)
+  const [toast, setToast] = useReducer((oldMsg, newMsg) => {
+    if (newMsg.length > 0 && newMsg !== oldMsg && newMsg !== "Unsaved changes...") {
+      setTimeout(() => {
+        setToast("")
+      }, 3000)
+    }
+    return newMsg
+  }, "")
+  const [autoSave, queueAutoSave] = useState(false)
   /*
     Game states:
       0 not loaded yet
@@ -117,7 +129,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
     return retObj
   }, {})
 
-  const { wsIsReady, sendMessage } = useWebSocket(message => {
+  const { wsIsReady, sendMessage, resetConnection } = useWebSocket(message => {
     switch (message.type) {
       case "loadGameCb":
         const loadedGame = message.payload && message.payload.Item ? 
@@ -197,6 +209,9 @@ const GameProvider = ({children, gameId, playId = null}) => {
           })
         }
         break
+      case "saveGameCb":
+        setToast("Saved!")
+        break
     }
 	})
 
@@ -239,16 +254,23 @@ const GameProvider = ({children, gameId, playId = null}) => {
     )
   }
 
-  const saveGame = () => {
-		sendMessage({
-			action: "saveGame",
-			gameId,
-			gameName: name || "Untitled",
-			creator: creator || "Unknown",
-			categories,
-			questions,
-			answers
-		})
+  const saveGame = (auto = false) => {
+    try {
+      setToast(auto ? "Auto-saving..." : "Saving...")
+      sendMessage({
+        action: "saveGame",
+        gameId,
+        gameName: name || "Untitled",
+        creator: creator || "Unknown",
+        categories,
+        questions,
+        answers
+      })
+    } catch (err) {
+      console.log("Failed to save", err)
+      setToast("Save failed! Try saving again or reloading the page.")
+      resetConnection()
+    }
   }
 
   const savePlay = () => {
@@ -269,7 +291,7 @@ const GameProvider = ({children, gameId, playId = null}) => {
 
   const startNewPlay = () => {
     setLocalGameId(gameId)
-    saveGame()
+    saveGame(true)
     router.push(`/host/${generateId()}`)
   }
 
@@ -345,6 +367,15 @@ const GameProvider = ({children, gameId, playId = null}) => {
       }, 1000)
     }
   }, [gameClock, gameState])
+
+  useEffect(() => {
+    if (autoSave) {
+      setTimeout(() => {
+        saveGame(true)
+      }, 1000)
+      queueAutoSave(false)
+    }
+  }, [autoSave])
 
   const endCurrentQuestion = () => {
     addPlayedQuestion({
@@ -474,7 +505,10 @@ const GameProvider = ({children, gameId, playId = null}) => {
       overrideAnswer,
       rewriteAnswer,
       resetPlayState,
-      getConnectedClients
+      getConnectedClients,
+      toast,
+      setToast,
+      queueAutoSave
     }}>
       {children}
     </GameContext.Provider>
