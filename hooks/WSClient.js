@@ -45,7 +45,7 @@ export const useWebSocket = (cb, keepAlive = false) => {
   }, [wsClient])
 
   const sendMessage = (data, cb) => {
-    if (wsIsReady)
+    // if (wsIsReady)
       wsClient.send(JSON.stringify(data))
   }
 
