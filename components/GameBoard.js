@@ -404,8 +404,8 @@ const GameBoard = ({className, mode = "host"}) => {
 							>
 								<div
 									css={css`
-										font-size: 4rem;
-										padding: 6rem;
+										font-size: 2.5rem;
+										padding: 4rem;
 									`}
 								>
 									{gameState === 3 ? questions[currentQuestion] : answers[currentQuestion]}
@@ -553,15 +553,15 @@ const StyledGameBoard = styled(GameBoard)`
 		color: white;
 		margin: 1rem;
 		text-align: center;
-		font-size: 1.5rem;
+		font-size: 1.25rem;
 	
 		& > div {
-			padding: 1rem;
+			padding: 0.75rem;
 			border: 1px solid white;
 			display: flex;
 			flex-direction: column;
 			justify-content: center;
-			min-height: 5rem;
+			min-height: 4.5rem;
 	
 			& > div {
 				font-size: 1rem;
@@ -569,7 +569,7 @@ const StyledGameBoard = styled(GameBoard)`
 			}
 	
 			& > div.dollar {
-				font-size: 3rem;
+				font-size: 2rem;
 			}
 		}
 	

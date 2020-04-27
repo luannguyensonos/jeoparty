@@ -4,7 +4,7 @@ import { useLocalStorage } from "react-use"
 import { useWebSocket } from "../hooks/WSClient"
 import generateId from "../util/id"
 
-export const GAME_TIME = 25
+export const GAME_TIME = 35
 export const MAX_CLIENTS = 18
 
 export const GameContext = React.createContext({
@@ -49,6 +49,12 @@ const objReducer = (oldObj, newItem) => {
   }
 }
 
+const RETAIN_MSGS = [
+  "Unsaved changes...",
+  "Auto-saving...",
+  "Saving..."
+]
+
 const GameProvider = ({children, gameId, playId = null}) => {
   const router = useRouter()
 
@@ -60,7 +66,9 @@ const GameProvider = ({children, gameId, playId = null}) => {
   const [creator, setCreator] = useState("")
   const [gameState, setGameState] = useState(0)
   const [toast, setToast] = useReducer((oldMsg, newMsg) => {
-    if (newMsg.length > 0 && newMsg !== oldMsg && newMsg !== "Unsaved changes...") {
+    if (newMsg.length > 0
+      && newMsg !== oldMsg
+      && !RETAIN_MSGS.includes(newMsg)) {
       setTimeout(() => {
         setToast("")
       }, 3000)
