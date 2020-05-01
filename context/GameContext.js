@@ -4,7 +4,7 @@ import { useLocalStorage } from "react-use"
 import { useWebSocket } from "../hooks/WSClient"
 import generateId from "../util/id"
 
-export const GAME_TIME = 35
+export const GAME_TIME = 30
 export const MAX_CLIENTS = 18
 
 export const GameContext = React.createContext({

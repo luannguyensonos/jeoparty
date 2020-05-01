@@ -10,19 +10,19 @@ import GameProvider from "../../context/GameContext"
 import { useLocalStorage } from "react-use";
 
 const HostPage = () => {
-	const router = useRouter()
+  const router = useRouter()
   const { pid } = router.query
   
   const [localGameId,] = useLocalStorage("gameId")
 
-	return (
-		<>
-			<Head>
-				<title>This is Jeoparty!</title>
-				<link rel="icon" href="/favicon.ico" />
-			</Head>
-			<Main>
-				<GameProvider gameId={localGameId} playId={pid}>
+  return (
+    <>
+      <Head>
+        <title>This is Jeoparty!</title>
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      <Main>
+        <GameProvider gameId={localGameId} playId={pid}>
           <div
             css={css`
               display: grid;
@@ -32,10 +32,10 @@ const HostPage = () => {
             <GameBoard mode="host"/>
             <GameContestants/>
           </div>
-				</GameProvider>
-			</Main>
-		</>
-	)
+        </GameProvider>
+      </Main>
+    </>
+  )
 }
 
 export default HostPage

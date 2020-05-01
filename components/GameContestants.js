@@ -4,7 +4,7 @@ import styled from "@emotion/styled"
 import { css, jsx } from "@emotion/core"
 import { GameContext } from "../context/GameContext"
 
-const BREAKPOINT = 6
+const BREAKPOINT = 5
 
 const GameContestants = ({className}) => {
   // TODO: Maybe plumb through a color when they've submitted?
@@ -37,6 +37,14 @@ const GameContestants = ({className}) => {
                 flex-direction: ${compact ? `row` : `column`};
                 font-size: 1.25rem;
                 width: 100%;
+
+                @media only screen and (max-width: 899px) {
+                  flex-direction: column;
+                  margin: 0.5rem;
+                  text-align: center;
+                  font-size: 0.75rem;
+                  padding: 0.25rem;
+                }
               `}
             >
               <div
@@ -44,6 +52,11 @@ const GameContestants = ({className}) => {
                   ${compact ? `` : `margin-bottom: 1.5rem;`}
                   ${compact ? `width: 70%;` : ``}
                   overflow: hidden;
+
+                  @media only screen and (max-width: 899px) {
+                    margin-bottom: 0.5rem;
+                    width: 100%;
+                  }
                 `}
               >
                 {`${c}`}
@@ -52,6 +65,11 @@ const GameContestants = ({className}) => {
                 css={css`
                   margin-${compact ? `left` : `top`}: auto;
                   ${compact ? `align-self: center;` : ``}
+
+                  @media only screen and (max-width: 899px) {
+                    margin-left: unset;
+                    margin-top: auto;
+                  }
                 `}
               >
                 {`$${client.score}`}
